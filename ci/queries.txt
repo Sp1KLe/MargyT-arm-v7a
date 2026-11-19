@@ -1,0 +1,1 @@
+# Lcom/foo/Bar;  or  grep:text

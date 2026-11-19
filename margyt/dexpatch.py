@@ -2516,30 +2516,44 @@ def rewrite_everything(root: str, literals: Optional[Dict[str, str]] = None,
     itself as well, a pass that could not find anything in it is not sent to
     read ten thousand files to learn that.
     """
-    counts = rewrite_smali(root)
-    counts.update(rewrite_literals(root, literals or {}))
-    counts.update(force_false(root))
-    counts.update(rewrite_models(root))
-    counts.update(rewrite_flag_reader(root, dex))
-    counts.update(rewrite_hdr_switch(root, dex))
-    counts.update(rewrite_settings_row(root, dex))
-    counts.update(rewrite_starts(root, dex))
-    counts.update(rewrite_lite_menu(root, dex))
-    counts.update(rewrite_lite_drops(root, dex))
+    counts: Dict[str, int] = {}
+    survey = bool(os.environ.get("MARGYT_SURVEY"))
+
+    def step(rule, *args):
+        # MARGYT_SURVEY: a port to a new TikTok wants every rule that no longer
+        # fits listed in one run, not the first one per run
+        if not survey:
+            counts.update(rule(*args))
+            return
+        try:
+            counts.update(rule(*args))
+        except Exception as error:  # noqa: BLE001
+            print("SURVEY FAIL %s: %s" % (rule.__name__, error), flush=True)
+
+    step(rewrite_smali, root)
+    step(rewrite_literals, root, literals or {})
+    step(force_false, root)
+    step(rewrite_models, root)
+    step(rewrite_flag_reader, root, dex)
+    step(rewrite_hdr_switch, root, dex)
+    step(rewrite_settings_row, root, dex)
+    step(rewrite_starts, root, dex)
+    step(rewrite_lite_menu, root, dex)
+    step(rewrite_lite_drops, root, dex)
     # Class-specific heart hooks must claim the feed heart's Tux tint calls
     # before the generic accent pass rewrites every TuxIconView tint. The
     # latter would otherwise swallow the exact native heart hook and leave
     # the build gate reporting a missing heart-tint patch.
-    counts.update(rewrite_anchored(root))
-    counts.update(rewrite_accent(root))
-    counts.update(rewrite_speed_touch(root))
+    step(rewrite_anchored, root)
+    step(rewrite_accent, root)
+    step(rewrite_speed_touch, root)
     if dex is None or draws_the_loader(dex):
-        counts.update(rewrite_loading(root))
-    counts.update(rewrite_cards(root))
-    counts.update(rewrite_recall(root, dex))
-    counts.update(rewrite_frames(root, dex))
+        step(rewrite_loading, root)
+    step(rewrite_cards, root)
+    step(rewrite_recall, root, dex)
+    step(rewrite_frames, root, dex)
     if dex is None or b"setPrimaryClip" in dex:
-        counts.update(rewrite_clipboard(root))
+        step(rewrite_clipboard, root)
     return counts
 
 

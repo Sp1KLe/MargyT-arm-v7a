@@ -278,6 +278,8 @@ def one(job: dict) -> Tuple[str, Optional[str], Dict[str, int], str]:
         room = os.path.join(scratch, "smali")
         _copy(tree, room)
         counts, written = _rewrite(room, literals, dex)
+        if os.environ.get("MARGYT_SURVEY"):
+            return name, None, counts, "survey only, not reassembled"
         if not counts:
             _save(answer_path, json.dumps({"counts": {}}).encode("utf-8"))
             return name, None, {}, "nothing to rewrite after all"

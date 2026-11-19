@@ -12,6 +12,9 @@ on:
       base_asset:
         description: "File name of that apk"
         default: "tiktok-47.2.41-armeabi-v7a.apk"
+      survey:
+        description: "Only list the patches that no longer fit (no apk is made)"
+        default: "false"
       base_sha256:
         description: "Optional sha256 of the base apk to verify"
         default: ""
@@ -38,13 +41,36 @@ jobs:
             echo "${{ inputs.base_sha256 }}  base.apk" | sha256sum -c -
           fi
           unzip -l base.apk | grep -E "lib/(armeabi-v7a|arm64-v8a)/" | awk '{print $4}' | cut -d/ -f1-2 | sort | uniq -c
+      - name: Restore disassembly cache
+        id: dexcache
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.cache/margyt-dex
+          key: dexpieces-${{ inputs.base_asset }}-v1
       - name: Python dependencies
         run: pip install pillow bsdiff4
       - name: Build
+        env:
+          MARGYT_SURVEY: ${{ inputs.survey == 'true' && '1' || '' }}
         run: |
           set -o pipefail
           mkdir -p build
           bash build.sh base.apk -o build/margyt-armeabi-v7a.apk 2>&1 | tee build/build.log
+      - name: Save disassembly cache
+        if: always() && steps.dexcache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.cache/margyt-dex
+          key: dexpieces-${{ inputs.base_asset }}-v1
+      - name: Extract smali for reading
+        if: always()
+        run: python3 ci/extract_smali.py ci/queries.txt | tee build/extract.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: smali-extract
+          path: build/extract
+          if-no-files-found: ignore
       - name: Check ABI is intact
         run: |
           unzip -l build/margyt-armeabi-v7a.apk | grep -q "lib/armeabi-v7a/" || { echo "no armeabi-v7a libs in result"; exit 1; }

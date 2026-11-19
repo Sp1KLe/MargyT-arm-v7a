@@ -913,6 +913,8 @@ class Build:
             {name: apk.read(name) for name in candidates}, self.tools.smali, api,
             os.path.join(self.workspace, "patch"), literals, self.detail
         )
+        if os.environ.get("MARGYT_SURVEY"):
+            raise RuntimeError("survey done: the list of rules that no longer fit is in the log above")
         for name in candidates:
             patched, counts = results[name]
             if not counts:
