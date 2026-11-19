@@ -38,6 +38,8 @@ jobs:
             echo "${{ inputs.base_sha256 }}  base.apk" | sha256sum -c -
           fi
           unzip -l base.apk | grep -E "lib/(armeabi-v7a|arm64-v8a)/" | awk '{print $4}' | cut -d/ -f1-2 | sort | uniq -c
+      - name: Python dependencies
+        run: pip install pillow
       - name: Build
         run: |
           set -o pipefail
