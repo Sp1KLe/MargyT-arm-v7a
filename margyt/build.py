@@ -913,13 +913,12 @@ class Build:
             {name: apk.read(name) for name in candidates}, self.tools.smali, api,
             os.path.join(self.workspace, "patch"), literals, self.detail
         )
-        if os.environ.get("MARGYT_SURVEY"):
-            raise RuntimeError("survey done: the list of rules that no longer fit is in the log above")
         for name in candidates:
             patched, counts = results[name]
             if not counts:
                 continue
-            apk.replace(name, patched)
+            if patched is not None:
+                apk.replace(name, patched)
             patched_dex_count += 1
             feature_hits["seekbar"] += counts.get("setSeekBarShowType (any owner)",0)
             feature_hits["comment copy"] += sum(v for key,v in counts.items()
@@ -992,16 +991,16 @@ class Build:
         if feature_hits["native right-area slots"]<4 and "native right-area slots" not in missing:
             missing.append("native right-area slots (need all four)")
         if missing:
-            raise RuntimeError("Required feature hooks did not match: "+", ".join(missing)
+            self._fail("Required feature hooks did not match: "+", ".join(missing)
                                +". This APK is unsupported; no silent feature omissions.")
         self.detail("Feature hooks: "+", ".join("%s x%d"%item for item in feature_hits.items()))
         if not like_hooks:
-            raise RuntimeError(
+            self._fail(
                 "TikTok's feed-like animation entry did not match: this build "
                 "would leave the heart animation unchanged"
             )
         if not speed_lock or not edge_speed_lock:
-            raise RuntimeError(
+            self._fail(
                 "TikTok's feed touch listener did not match: the hold speed the "
                 "mod lets people choose would never be applied"
             )
@@ -1009,10 +1008,19 @@ class Build:
             self.detail("WARNING: the accent colour is not a constant in this apk any "
                         "more, so the colour picker will have nothing to change")
         if not calls:
-            raise RuntimeError(
+            self._fail(
                 "not one call site matched -- the method signatures have moved, "
                 "and the mod would do nothing at all"
             )
+        if os.environ.get("MARGYT_SURVEY"):
+            raise RuntimeError("survey done: every rule that no longer fits is listed in the log above")
+
+    def _fail(self, message: str) -> None:
+        # MARGYT_SURVEY lists every shortfall of a port in one run
+        if os.environ.get("MARGYT_SURVEY"):
+            print("SURVEY GATE: %s" % message, flush=True)
+            return
+        raise RuntimeError(message)
 
 
 def _tables(keys: List[int], moved: Dict[int, int]) -> str:
