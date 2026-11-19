@@ -39,7 +39,10 @@ jobs:
           fi
           unzip -l base.apk | grep -E "lib/(armeabi-v7a|arm64-v8a)/" | awk '{print $4}' | cut -d/ -f1-2 | sort | uniq -c
       - name: Build
-        run: ./build.sh base.apk -o build/margyt-armeabi-v7a.apk
+        run: |
+          set -o pipefail
+          mkdir -p build
+          ./build.sh base.apk -o build/margyt-armeabi-v7a.apk 2>&1 | tee build/build.log
       - name: Check ABI is intact
         run: |
           unzip -l build/margyt-armeabi-v7a.apk | grep -q "lib/armeabi-v7a/" || { echo "no armeabi-v7a libs in result"; exit 1; }
@@ -55,3 +58,9 @@ jobs:
         with:
           name: margyt-armeabi-v7a
           path: build/margyt-armeabi-v7a.apk
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: build-log
+          path: build/build.log
+          if-no-files-found: ignore
