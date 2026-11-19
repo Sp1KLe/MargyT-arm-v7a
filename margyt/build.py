@@ -207,8 +207,15 @@ class Build:
         self.write_shots(manifest)
 
         self.say("Building the mod's own dex")
+        # D8 writes dex 037 from minSdk 24 up, but some apks (TikTok 47.5.x)
+        # declare minSdk 24 and still ship dex 035: build the mod for 23 then,
+        # so its dex has the same version as the apk's own
+        compile_api = api
+        if dex_format == "035" and api >= 24:
+            compile_api = 23
+            self.detail("apk is dex 035 at minSdk %d: compiling the mod for api 23" % api)
         dex_path = self.tools.compile_dex(
-            os.path.join(self.root, "inject", "java"), self.workspace, api,
+            os.path.join(self.root, "inject", "java"), self.workspace, compile_api,
             os.path.join(self.root, "inject", "stubs"),
         )
         injected = open(dex_path, "rb").read()
@@ -316,8 +323,15 @@ class Build:
         # Include the exact patch coverage in the in-app diagnostics. The
         # first compile above validates the call surface before dex work starts.
         self.write_build_info()
+        # D8 writes dex 037 from minSdk 24 up, but some apks (TikTok 47.5.x)
+        # declare minSdk 24 and still ship dex 035: build the mod for 23 then,
+        # so its dex has the same version as the apk's own
+        compile_api = api
+        if dex_format == "035" and api >= 24:
+            compile_api = 23
+            self.detail("apk is dex 035 at minSdk %d: compiling the mod for api 23" % api)
         dex_path = self.tools.compile_dex(
-            os.path.join(self.root, "inject", "java"), self.workspace, api,
+            os.path.join(self.root, "inject", "java"), self.workspace, compile_api,
             os.path.join(self.root, "inject", "stubs"),
         )
         injected = open(dex_path, "rb").read()
