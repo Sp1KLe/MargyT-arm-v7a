@@ -42,7 +42,7 @@ jobs:
         run: |
           set -o pipefail
           mkdir -p build
-          ./build.sh base.apk -o build/margyt-armeabi-v7a.apk 2>&1 | tee build/build.log
+          bash build.sh base.apk -o build/margyt-armeabi-v7a.apk 2>&1 | tee build/build.log
       - name: Check ABI is intact
         run: |
           unzip -l build/margyt-armeabi-v7a.apk | grep -q "lib/armeabi-v7a/" || { echo "no armeabi-v7a libs in result"; exit 1; }
